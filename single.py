@@ -10,32 +10,39 @@ class Trainer:
         train_data: DataLoader,
         optimizer: torch.optim.Optimizer,
         gpu_id: int,
+        save_every: int, 
     ) -> None:
+        self.gpu_id = gpu_id
         self.model = model.to(gpu_id)
         self.train_data = train_data
         self.optimizer = optimizer
-        self.gpu_id = gpu_id
+        self.save_every = save_every
 
-    def run_batch(self, source, targets):
+    def _run_batch(self, source, targets):
         self.optimizer.zero_grad()
-        source = source.to(self.gpu_id)
-        targets = targets.to(self.gpu_id)
         output = self.model(source)
         loss = torch.nn.CrossEntropyLoss()(output, targets)
         loss.backward()
         self.optimizer.step()
 
-    def run_epoch(self, nb_epochs):
-        for epoch in range(nb_epochs):
-            print(f"[GPU{self.gpu_id}] Epoch {epoch}", end=" | ")
-            print(f"Batchsize: {len(next(iter(self.train_data))[0])}", end=" | ")
-            print(f"No. of steps: {len(self.train_data)}")
-            for source, targets in self.train_data:
-                self.run_batch(source, targets)
+    def _run_epoch(self, epoch):
+        b_sz = len(next(iter(self.train_data))[0])
+        print(f"[GPU{self.gpu_id}] Epoch {epoch} | Batchsize: {b_sz} | Steps: {len(self.train_data)}")
+        for source, targets in self.train_data:
+            source = source.to(self.gpu_id)
+            targets = targets.to(self.gpu_id)
+            self._run_batch(source, targets)
 
-    def save_checkpoint(self):
-        torch.save(self.model.state_dict(), "model_single.pth")
-        print("Model state dict saved at model.pth")
+    def _save_checkpoint(self, epoch):
+        ckp = self.model.state_dict()
+        torch.save(ckp, "checkpoint.pt")
+        print(f"Epoch {epoch} | Training checkpoint saved at checkpoint.pt")
+
+    def train(self, max_epochs: int):
+        for epoch in range(max_epochs):
+            self._run_epoch(epoch)
+            if epoch % self.save_every == 0:
+                self._save_checkpoint(epoch)
 
 
 def load_train_objs():
@@ -54,14 +61,16 @@ def prepare_dataloader(dataset: Dataset, batch_size: int):
     )
 
 
-def main(device):
+def main(device, total_epochs, save_every):
     dataset, model, optimizer = load_train_objs()
     train_data = prepare_dataloader(dataset, batch_size=32)
-    trainer = Trainer(model, train_data, optimizer, gpu_id=device)
-    trainer.run_epoch(10)
-    trainer.save_checkpoint()
+    trainer = Trainer(model, train_data, optimizer, device, save_every)
+    trainer.train(total_epochs)
 
 
 if __name__ == "__main__":
+    import sys
+    total_epochs = int(sys.argv[1])
+    save_every = int(sys.argv[2])
     device = 0  # shorthand for cuda:0
-    main(device)
+    main(device, total_epochs, save_every)
