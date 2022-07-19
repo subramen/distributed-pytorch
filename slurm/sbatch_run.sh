@@ -1,12 +1,10 @@
 #!/bin/bash
 
 #SBATCH --job-name=multinode-test
-
 #SBATCH --ntasks=4
-
 #SBATCH --nodes=4
-
 #SBATCH --gpus-per-task=1
+#SBATCH --cpus-per-task=4
 
 nodes=( $( scontrol show hostnames $SLURM_JOB_NODELIST ) )
 nodes_array=($nodes)
@@ -22,4 +20,4 @@ srun torchrun \
 --rdzv_id $RANDOM \
 --rdzv_backend c10d \
 --rdzv_endpoint $head_node_ip:29500 \
-./multi_node/multinode.py 50 10
+/shared/distributed-pytorch/multigpu_torchrun.py 50 10

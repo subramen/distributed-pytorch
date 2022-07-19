@@ -9,6 +9,9 @@ echo 'source /shared/venv/bin/activate' >> ~/.bashrc
 
 cd /shared
 git clone https://github.com/suraj813/distributed-pytorch.git
-cd distributed-pytorch/multi_node
+
+cd /shared/distributed-pytorch
 python3 -m pip install setuptools==59.5.0
 pip install -r requirements.txt
+
+sbatch ./slurm/sbatch_run.sh
