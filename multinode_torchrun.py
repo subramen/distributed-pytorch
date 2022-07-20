@@ -21,9 +21,9 @@ class Trainer:
         save_every: int,
         snapshot_path: str,
     ) -> None:
-        self.gpu_id = int(os.environ["LOCAL_RANK"])
-        self.process_rank = int(os.environ["RANK"])  # global rank
-        self.model = model.to(self.gpu_id)
+        self.local_rank = int(os.environ["LOCAL_RANK"])
+        self.global_rank = int(os.environ["RANK"])  
+        self.model = model.to(self.local_rank)  # equivalent to `output_device` in DDP
         self.train_data = train_data
         self.optimizer = optimizer
         self.save_every = save_every
@@ -32,7 +32,7 @@ class Trainer:
             print("Loading snapshot")
             self._load_snapshot(snapshot_path)
 
-        self.model = DDP(self.model, device_ids=[self.gpu_id])
+        self.model = DDP(self.model, device_ids=[self.local_rank])
 
     def _load_snapshot(self, snapshot_path):
         snapshot = torch.load(snapshot_path)
@@ -49,10 +49,10 @@ class Trainer:
 
     def _run_epoch(self, epoch):
         b_sz = len(next(iter(self.train_data))[0])
-        print(f"[GPU{self.process_rank}] Epoch {epoch} | Batchsize: {b_sz} | Steps: {len(self.train_data)}")
+        print(f"[GPU{self.global_rank}] Epoch {epoch} | Batchsize: {b_sz} | Steps: {len(self.train_data)}")
         for source, targets in self.train_data:
-            source = source.to(self.gpu_id)
-            targets = targets.to(self.gpu_id)
+            source = source.to(self.local_rank)
+            targets = targets.to(self.local_rank)
             self._run_batch(source, targets)
 
     def _save_snapshot(self, epoch):
@@ -65,7 +65,7 @@ class Trainer:
     def train(self, max_epochs: int):
         for epoch in range(self.epochs_run, max_epochs):
             self._run_epoch(epoch)
-            if self.process_rank == 0 and epoch % self.save_every == 0:
+            if self.global_rank == 0 and epoch % self.save_every == 0:
                 self._save_snapshot(epoch)
 
 
