@@ -35,6 +35,7 @@ class Trainer:
         self.model = DDP(self.model, device_ids=[self.local_rank])
         print(self.model.module.weight.data)
         chk = torch.distributed.all_reduce(self.model.module.weight.data, torch.distributed.ReduceOp.AVG)
+        torch.distributed.barrier()
         print(chk)
         assert chk == self.model.module.weight.data
 
