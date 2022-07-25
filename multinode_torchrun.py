@@ -23,7 +23,7 @@ class Trainer:
     ) -> None:
         self.local_rank = int(os.environ["LOCAL_RANK"])
         self.global_rank = int(os.environ["RANK"])  
-        self.model = model.to(self.local_rank)  # equivalent to `output_device` in DDP
+        self.model = model.to(self.local_rank)  
         self.train_data = train_data
         self.optimizer = optimizer
         self.save_every = save_every
@@ -33,6 +33,10 @@ class Trainer:
             self._load_snapshot(snapshot_path)
 
         self.model = DDP(self.model, device_ids=[self.local_rank])
+        print(self.model.module.weight.data)
+        chk = torch.distributed.all_reduce(self.model.module.weight.data, torch.distributed.ReduceOp.AVG)
+        print(chk)
+        assert chk == self.model.module.weight.data
 
     def _load_snapshot(self, snapshot_path):
         snapshot = torch.load(snapshot_path)
