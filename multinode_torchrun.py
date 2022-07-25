@@ -43,7 +43,7 @@ class Trainer:
     def _run_batch(self, source, targets):
         self.optimizer.zero_grad()
         output = self.model(source)
-        loss = torch.nn.CrossEntropyLoss()(output, targets)
+        loss = torch.nn.MSELoss()(output, targets)
         loss.backward()
         self.optimizer.step()
 
