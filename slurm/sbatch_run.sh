@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#SBATCH --job-name=multinode-test
-#SBATCH --ntasks=4
+#SBATCH --job-name=multinode-example
 #SBATCH --nodes=4
+#SBATCH --ntasks=4
 #SBATCH --gpus-per-task=1
 #SBATCH --cpus-per-task=4
 
@@ -16,8 +16,10 @@ export LOGLEVEL=INFO
 
 srun torchrun \
 --nnodes 4 \
---nproc_per_node 1 \
+--nproc_per_node 1 \  # corresponds to --gpus-per-task 
 --rdzv_id $RANDOM \
 --rdzv_backend c10d \
 --rdzv_endpoint $head_node_ip:29500 \
 /shared/distributed-pytorch/multinode_torchrun.py 50 10
+
+
